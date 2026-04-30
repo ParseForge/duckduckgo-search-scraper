@@ -1,0 +1,53 @@
+{
+  "title": "DuckDuckGo Search Results Scraper",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "maxItems": {
+      "title": "Max Items",
+      "type": "integer",
+      "description": "Free users: Limited to 10 items (preview). Paid users: Optional, max 1,000,000.",
+      "editor": "number",
+      "prefill": 10,
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "queries": {
+      "title": "Search queries",
+      "type": "array",
+      "description": "Keywords to search on DuckDuckGo. Each query produces multiple result rows.",
+      "editor": "stringList",
+      "prefill": ["apify scraper"],
+      "sectionCaption": "Search",
+      "sectionDescription": "Specify the queries and optional region/time filters."
+    },
+    "region": {
+      "title": "Region",
+      "type": "string",
+      "description": "DuckDuckGo region code. Examples: `us-en` (United States, English), `uk-en`, `de-de`, `es-es`, `mx-es`, `br-pt`, `wt-wt` (no region).",
+      "editor": "select",
+      "enum": ["wt-wt","us-en","uk-en","ca-en","au-en","nz-en","de-de","es-es","fr-fr","it-it","nl-nl","pl-pl","se-sv","no-no","fi-fi","dk-da","cz-cs","sk-sk","ro-ro","hu-hu","ru-ru","tr-tr","gr-el","mx-es","br-pt","ar-es","cl-es","co-es","jp-jp","kr-kr","cn-zh","tw-tzh","hk-tzh","in-en","id-id","vn-vi","th-th","my-en","sg-en","ph-en","ae-ar","sa-ar","il-he","za-en"],
+      "default": "us-en",
+      "prefill": "us-en"
+    },
+    "timeRange": {
+      "title": "Time range",
+      "type": "string",
+      "description": "Restrict to recent results: `d` (past day), `w` (past week), `m` (past month), `y` (past year). Empty = any time.",
+      "editor": "select",
+      "enum": ["", "d", "w", "m", "y"],
+      "default": "",
+      "prefill": ""
+    },
+    "safeSearch": {
+      "title": "SafeSearch",
+      "type": "string",
+      "description": "DuckDuckGo SafeSearch level: `off`, `moderate`, `strict`.",
+      "editor": "select",
+      "enum": ["off", "moderate", "strict"],
+      "default": "moderate",
+      "prefill": "moderate"
+    }
+  },
+  "required": []
+}
