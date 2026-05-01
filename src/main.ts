@@ -54,8 +54,11 @@ console.log('');
 console.log(c.magenta(`📬 ${pick(STARTUP)}\n`));
 
 const proxyConfig = await Actor.createProxyConfiguration({ groups: ['RESIDENTIAL'], countryCode: 'US' }).catch(() => null);
-const proxyUrl = proxyConfig ? await proxyConfig.newUrl() : undefined;
-const impit = new Impit({ browser: 'chrome', proxyUrl });
+async function newImpit(): Promise<Impit> {
+    const proxyUrl = proxyConfig ? await proxyConfig.newUrl(`s_${Date.now()}_${Math.floor(Math.random() * 1e6)}`) : undefined;
+    return new Impit({ browser: 'chrome', proxyUrl });
+}
+let impit = await newImpit();
 
 function decodeRedirect(href: string): string {
     if (!href) return '';
@@ -100,12 +103,19 @@ let pushed = 0;
 for (const q of queries) {
     if (pushed >= effectiveMaxItems) break;
     let attempts = 0;
-    while (pushed < effectiveMaxItems && attempts < 5) {
-        log.info(`📡 [${q}]…`);
+    let offset = 0;
+    while (pushed < effectiveMaxItems && attempts < 8) {
+        log.info(`📡 [${q}] offset=${offset}…`);
         try {
             const params = new URLSearchParams({ q, kl: region });
             if (timeRange) params.set('df', timeRange);
             params.set('kp', safe);
+            if (offset > 0) {
+                params.set('s', String(offset));
+                params.set('dc', String(offset));
+                params.set('v', 'l');
+                params.set('o', 'json');
+            }
             const r = await impit.fetch(`https://html.duckduckgo.com/html/?${params.toString()}`, {
                 headers: {
                     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -115,14 +125,22 @@ for (const q of queries) {
             });
             const html = await r.text();
             if (html.length < 5000) {
-                log.warning(`   thin response (${html.length} bytes), retrying…`);
+                log.warning(`   thin response (${html.length} bytes), rotating proxy…`);
+                impit = await newImpit();
                 attempts += 1;
                 await new Promise((res) => setTimeout(res, 2000));
                 continue;
             }
             const results = parseResults(html, q, pushed + 1);
             if (!results.length) {
-                log.info(`   no results for "${q}"`);
+                if (attempts < 2) {
+                    log.warning(`   no results parsed, rotating proxy…`);
+                    impit = await newImpit();
+                    attempts += 1;
+                    await new Promise((res) => setTimeout(res, 2000));
+                    continue;
+                }
+                log.info(`   no more results for "${q}"`);
                 break;
             }
             for (const item of results) {
@@ -131,7 +149,9 @@ for (const q of queries) {
                 else await Actor.pushData([item]);
                 pushed += 1;
             }
-            break; // single page returns ~30 results, plenty
+            offset += Math.max(results.length, 30);
+            attempts = 0;
+            await new Promise((res) => setTimeout(res, 800 + Math.random() * 600));
         } catch (err: any) {
             log.warning(`   ${err.message}`);
             attempts += 1;
